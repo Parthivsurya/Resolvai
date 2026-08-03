@@ -166,6 +166,22 @@ export default function App() {
           </button>
         </header>
 
+        <div className="chat-stage">
+        {/* Hero lead-in */}
+        <div className="hero-lead">
+          <span className="hero-badge">
+            <Sparkles size={13} />
+            RAG-grounded • source-cited
+          </span>
+          <h1 className="hero-lead-title">
+            Crack your placements with answers that <span className="grad-text">cite their source</span>
+          </h1>
+          <p className="hero-lead-sub">
+            Ask about company PYQs, aptitude, coding rounds, HR interviews & eligibility —
+            ResolvAI reads real placement material before it answers.
+          </p>
+        </div>
+
         {/* Interactive Chatbot Box Widget */}
         <section className="chat-preview-card">
           <div className="chat-inner-container">
@@ -181,29 +197,35 @@ export default function App() {
             {/* Chat Body */}
             <div className="chat-body" ref={chatBodyRef}>
               {messages.map((msg) => (
-                <div 
-                  key={msg.id} 
+                <div
+                  key={msg.id}
                   className={`chat-message-row ${msg.sender}`}
                 >
-                  <div className="message-content">{msg.text}</div>
-                  {msg.citation && (
-                    <div className="citation-badge">
-                      <FileText size={13} />
-                      <span>Source: {msg.citation}</span>
-                      {msg.confidence && (
-                        <span className="confidence-score">
-                          [{msg.confidence}]
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  {msg.sender === 'bot' && <div className="msg-avatar">AI</div>}
+                  <div className="msg-stack">
+                    <div className="message-content">{msg.text}</div>
+                    {msg.citation && (
+                      <div className="citation-badge">
+                        <FileText size={13} />
+                        <span>Source: {msg.citation}</span>
+                        {msg.confidence && (
+                          <span className="confidence-score">
+                            [{msg.confidence}]
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
 
               {isTyping && (
-                <div className="chat-message-row bot" style={{ opacity: 0.7 }}>
-                  <div className="message-content" style={{ fontStyle: 'italic' }}>
-                    ResolvAI is searching vector database & formulating grounded answer...
+                <div className="chat-message-row bot">
+                  <div className="msg-avatar">AI</div>
+                  <div className="msg-stack">
+                    <div className="message-content typing-indicator">
+                      <span></span><span></span><span></span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -272,6 +294,7 @@ export default function App() {
             </form>
           </div>
         </section>
+        </div>
 
       </div>
 
