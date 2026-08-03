@@ -29,6 +29,9 @@ import {
   ChevronUp
 } from 'lucide-react';
 
+// ResolvAI backend (FastAPI). Override at build time with VITE_API_URL if needed.
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 export default function App() {
   // Navigation & Modal state
   const [activeModal, setActiveModal] = useState(null); // 'about', 'features', 'contact', 'signup', 'demo'
@@ -45,7 +48,7 @@ export default function App() {
     {
       id: 1,
       sender: 'bot',
-      text: 'Hi 👋 How can I help you today?',
+      text: 'Hi 👋 I\'m ResolvAI, your placement prep assistant. Ask me about company PYQs, aptitude, coding rounds, HR interviews, eligibility, or the placement process.',
       citation: null,
       confidence: null,
       intent: 'Greeting',
@@ -55,8 +58,11 @@ export default function App() {
   ]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  
-  // RAG Pipeline Real-time Trace Visualizer State
+
+  // Stable session id so the backend can rewrite multi-turn follow-ups.
+  const [sessionId] = useState(() => 'web-' + Math.random().toString(36).slice(2));
+
+  // RAG Pipeline Real-time Trace Visualizer State (populated from the real backend response)
   const [activeTrace, setActiveTrace] = useState({
     query: 'Hi 👋 How can I help you today?',
     intent: 'Greeting',
@@ -68,152 +74,85 @@ export default function App() {
     hallucinationPrevented: true
   });
 
-  // Pre-configured RAG Knowledge Base Answers from ResolvAI Case Study
-  const ragKnowledgeBase = [
-    {
-      keywords: ['track', 'order', 'package', 'status', 'delivery'],
-      intent: 'Order Tracking',
-      response: 'To track your order, please provide your 6-digit Order ID. ResolvAI routes this query using intent classification (Order Tracking) and queries real-time shipping records.',
-      citation: 'E-commerce_Logistics_API_v4.pdf',
-      confidence: '0.98',
-      processingTime: '240ms',
-      retrievedChunks: 3,
-      sources: ['API Schema Docs', 'Warehouse Log #9']
-    },
-    {
-      keywords: ['refund', 'return', 'cancel', 'policy', 'money'],
-      intent: 'Returns & Refunds',
-      response: 'According to our return policy, items can be returned within 30 days of delivery for a full refund if they are in original condition. Refunds are processed within 3-5 business days upon item inspection.',
-      citation: 'Returns_and_Refunds_Policy_2026.pdf',
-      confidence: '0.96',
-      processingTime: '310ms',
-      retrievedChunks: 5,
-      sources: ['Returns Policy Sec 2', 'Merchant Agreement']
-    },
-    {
-      keywords: ['hallucination', 'hallucinate', 'accurate', 'rag', 'knows'],
-      intent: 'RAG Architecture Explanation',
-      response: 'ResolvAI uses an "Open Book" RAG architecture. Instead of generating answers from raw memory, it retrieves grounded policy chunks using hybrid search (BM25 + Dense Sentence-BERT) and includes verifiable source citations. If retrieval confidence falls below threshold, it abstains and escalates to a human operator.',
-      citation: 'ResolvAI_Architecture_Paper.pdf (Section 2.3)',
-      confidence: '0.99',
-      processingTime: '450ms',
-      retrievedChunks: 7,
-      sources: ['Abstract', 'Sec 2.3 RAG Fallback', 'Evaluations Chart']
-    },
-    {
-      keywords: ['team', 'author', 'project', 'who', 'members', 'nlp'],
-      intent: 'Team Identification',
-      response: 'ResolvAI is developed by:\n• Parthivsurya K B (CB.SC.U4CSE24535)\n• Awaaz Muhammed (CB.SC.U4CSE24562)\n• Rajendra G (CB.SC.U4CSE24511)\nSlogan: "Support that knows, not guesses."',
-      citation: 'NLP_Case_Study_ResolvAI.pdf',
-      confidence: '1.00',
-      processingTime: '150ms',
-      retrievedChunks: 2,
-      sources: ['Title Page', 'Appendix A']
-    }
-  ];
-
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     e?.preventDefault();
-    if (!inputText.trim()) return;
-
     const userQuery = inputText.trim();
-    const newUserMsg = {
-      id: Date.now(),
-      sender: 'user',
-      text: userQuery
-    };
+    if (!userQuery) return;
 
+    const newUserMsg = { id: Date.now(), sender: 'user', text: userQuery };
     setMessages((prev) => [...prev, newUserMsg]);
     setInputText('');
     setIsTyping(true);
 
-    // Initial Classification Trace
+    // Kick off the live trace; real values fill in once the backend responds.
+    const startedAt = Date.now();
     setActiveTrace({
       query: userQuery,
       intent: 'Classifying...',
       confidence: 'Calculating...',
       retrievedChunks: 0,
-      processingTime: '40ms',
+      processingTime: '—',
       pipelineStep: 1,
       sources: [],
       hallucinationPrevented: false
     });
 
-    // Simulate RAG Pipeline Steps
-    setTimeout(() => {
-      // Step 2: Retrieval
-      setActiveTrace(prev => ({
-        ...prev,
-        intent: 'Intent Identified',
-        pipelineStep: 2,
-        processingTime: '120ms',
-        retrievedChunks: 4
-      }));
-    }, 300);
+    try {
+      const res = await fetch(`${API_URL}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userQuery, session_id: sessionId })
+      });
+      if (!res.ok) throw new Error(`Backend responded ${res.status}`);
+      const data = await res.json();
 
-    setTimeout(() => {
-      // Step 3: PII Masking
-      setActiveTrace(prev => ({
-        ...prev,
-        pipelineStep: 3,
-        processingTime: '210ms'
-      }));
-    }, 600);
+      // Map backend citations (array) -> a concise source line for the badge.
+      const sources = [...new Set((data.citations || []).map((c) => c.source))];
+      const citation = sources.length
+        ? sources.join(', ')
+        : (data.escalated ? 'Escalated to a placement officer' : null);
+      const confidence = data.confidence != null
+        ? `${Math.round(data.confidence * 100)}%${data.escalated ? ' • Escalated' : ''}`
+        : null;
+      const processingTime = `${Date.now() - startedAt}ms`;
 
-    setTimeout(() => {
-      const lowerQuery = userQuery.toLowerCase();
-      const match = ragKnowledgeBase.find(kb => 
-        kb.keywords.some(kw => lowerQuery.includes(kw))
-      );
+      setMessages((prev) => [...prev, {
+        id: Date.now() + 1,
+        sender: 'bot',
+        text: data.answer,
+        citation,
+        confidence,
+        intent: data.intent,
+        retrievedChunks: (data.citations || []).length,
+        processingTime
+      }]);
 
-      let botReply;
-      if (match) {
-        botReply = {
-          id: Date.now() + 1,
-          sender: 'bot',
-          text: match.response,
-          citation: match.citation,
-          confidence: match.confidence,
-          intent: match.intent,
-          retrievedChunks: match.retrievedChunks,
-          processingTime: match.processingTime
-        };
-        setActiveTrace({
-          query: userQuery,
-          intent: match.intent,
-          confidence: match.confidence,
-          retrievedChunks: match.retrievedChunks,
-          processingTime: match.processingTime,
-          pipelineStep: 4,
-          sources: match.sources,
-          hallucinationPrevented: true
-        });
-      } else {
-        botReply = {
-          id: Date.now() + 1,
-          sender: 'bot',
-          text: 'I searched the internal knowledge base, but the retrieval confidence score is below threshold. Escalating this query with full conversation history to a human support agent.',
-          citation: 'Confidence-Aware Fallback System',
-          confidence: '0.42 (Escalated)',
-          intent: 'Unknown / Fallback',
-          retrievedChunks: 12,
-          processingTime: '510ms'
-        };
-        setActiveTrace({
-          query: userQuery,
-          intent: 'Out of Knowledge Base',
-          confidence: '0.42',
-          retrievedChunks: 12,
-          processingTime: '510ms',
-          pipelineStep: 4,
-          sources: ['Fallback Rule Engine'],
-          hallucinationPrevented: true
-        });
-      }
-
-      setMessages((prev) => [...prev, botReply]);
+      // Feed the real pipeline result into the trace visualizer.
+      setActiveTrace({
+        query: data.rewritten_query || userQuery,
+        intent: data.intent,
+        confidence: data.confidence != null ? data.confidence.toFixed(2) : '—',
+        retrievedChunks: (data.citations || []).length,
+        processingTime,
+        pipelineStep: 4,
+        sources,
+        hallucinationPrevented: data.escalated || sources.length > 0
+      });
+    } catch {
+      setMessages((prev) => [...prev, {
+        id: Date.now() + 1,
+        sender: 'bot',
+        text: `I couldn't reach the ResolvAI backend at ${API_URL}. Make sure it's running (uvicorn backend.app:app --reload).`,
+        citation: null,
+        confidence: null,
+        intent: 'Error',
+        retrievedChunks: 0,
+        processingTime: '—'
+      }]);
+      setActiveTrace((prev) => ({ ...prev, intent: 'Backend unreachable', pipelineStep: 4, hallucinationPrevented: false }));
+    } finally {
       setIsTyping(false);
-    }, 900);
+    }
   };
 
   const handlePromptClick = (promptText) => {
@@ -311,7 +250,7 @@ export default function App() {
             <div className="chat-header">
               <div className="chat-header-left">
                 <span className="status-dot"></span>
-                <span>AI Customer Support / Chatbot.</span>
+                <span>ResolvAI · Placement Assistant</span>
               </div>
               <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>RAG Engine v1.2</span>
             </div>
@@ -350,29 +289,29 @@ export default function App() {
             {/* Quick Sample Prompts */}
             <div style={{ padding: '0 20px 8px' }}>
               <div className="prompt-chips">
-                <button 
+                <button
                   className="prompt-chip"
-                  onClick={() => handlePromptClick('How do I request a refund?')}
+                  onClick={() => handlePromptClick('What TCS PYQ coding questions are asked?')}
                 >
-                  💳 Refund Policy
+                  📝 TCS PYQs
                 </button>
-                <button 
+                <button
                   className="prompt-chip"
-                  onClick={() => handlePromptClick('Track my order status')}
+                  onClick={() => handlePromptClick('How do I prepare for the aptitude round?')}
                 >
-                  📦 Track Order
+                  🧮 Aptitude Prep
                 </button>
-                <button 
+                <button
                   className="prompt-chip"
-                  onClick={() => handlePromptClick('How does ResolvAI prevent hallucinations?')}
+                  onClick={() => handlePromptClick('What are common HR interview questions?')}
                 >
-                  🧠 RAG Architecture
+                  💼 HR Round
                 </button>
-                <button 
+                <button
                   className="prompt-chip"
-                  onClick={() => handlePromptClick('Who created ResolvAI?')}
+                  onClick={() => handlePromptClick('What is the eligibility criteria for placements?')}
                 >
-                  🎓 Case Study Team
+                  ✅ Eligibility
                 </button>
               </div>
             </div>

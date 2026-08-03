@@ -1,0 +1,78 @@
+utterance,intent
+what are the previous year questions for TCS,company_pyq
+show me infosys pyqs,company_pyq
+past questions asked by wipro in placement,company_pyq
+company wise previous year coding questions,company_pyq
+what did accenture ask last year,company_pyq
+give me pyq of cognizant,company_pyq
+how do I prepare for aptitude,aptitude_prep
+best resources for quantitative aptitude,aptitude_prep
+tips to solve time and work problems fast,aptitude_prep
+how to improve logical reasoning for placements,aptitude_prep
+which topics come in aptitude test,aptitude_prep
+how to crack the coding round,coding_round
+what kind of dsa questions are asked in coding rounds,coding_round
+how many coding questions in online assessment,coding_round
+best way to practice data structures for placement,coding_round
+which language should I use for coding tests,coding_round
+what is asked in technical interview,technical_interview
+core subjects to revise for tech interview,technical_interview
+do they ask dbms in technical rounds,technical_interview
+how to answer os questions in interview,technical_interview
+tell me about system design for freshers,technical_interview
+common hr interview questions,hr_interview
+how to answer tell me about yourself,hr_interview
+what are your strengths and weaknesses answer,hr_interview
+how to handle why should we hire you,hr_interview
+hr round preparation tips,hr_interview
+how to prepare for group discussion,group_discussion
+tips for gd round,group_discussion
+common gd topics in placements,group_discussion
+how are candidates evaluated in group discussion,group_discussion
+how to build a good resume for placements,resume_help
+what should a fresher resume contain,resume_help
+resume tips for software jobs,resume_help
+how many projects to put on resume,resume_help
+what is the eligibility criteria for placements,eligibility_criteria
+minimum cgpa required for companies,eligibility_criteria
+are backlogs allowed in placement drives,eligibility_criteria
+what percentage is needed to sit for tcs,eligibility_criteria
+explain the campus placement process,placement_process
+what are the rounds in a placement drive,placement_process
+how does on campus recruitment work,placement_process
+steps involved in getting placed,placement_process
+what is the ctc offered by infosys,ctc_salary
+average package for freshers,ctc_salary
+salary breakup for service based companies,ctc_salary
+how much do product companies pay freshers,ctc_salary
+tell me about the company,company_info
+what does this company do,company_info
+information about wipro as an employer,company_info
+which domains does tcs work in,company_info
+how to apply off campus,off_campus
+best sites for off campus drives,off_campus
+how to get referrals for off campus,off_campus
+what about internship opportunities,internship
+how to convert internship to full time,internship
+do companies offer internships during placement,internship
+share some interview experiences,interview_experience
+what was the interview like for sde role,interview_experience
+real experiences of students who got placed,interview_experience
+give me a preparation roadmap,prep_roadmap
+how many months to prepare for placements,prep_roadmap
+study plan for campus placements,prep_roadmap
+what is the cutoff for this company,cutoff
+minimum marks to clear the online test,cutoff
+what score is needed to qualify,cutoff
+hi,greeting
+hello there,greeting
+hey good morning,greeting
+what can you do,greeting
+how is the weather today,out_of_scope
+tell me a joke,out_of_scope
+who won the cricket match,out_of_scope
+what is the capital of france,out_of_scope
+i want to talk to a real person,talk_to_placement_officer
+connect me to the placement officer,talk_to_placement_officer
+i need to speak to a human,talk_to_placement_officer
+this is not helping i want human help,talk_to_placement_officer

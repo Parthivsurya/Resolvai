@@ -1,0 +1,30 @@
+# --- API layer ---
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
+
+# --- Retrieval / embeddings / vector store ---
+sentence-transformers==3.3.1
+chromadb==0.5.23
+rank-bm25==0.2.2
+
+# --- Intent classification (fine-tuned DistilBERT) ---
+# transformers pinned to 4.46.x so tokenizers==0.20.3 stays compatible with chromadb 0.5.23
+transformers==4.46.3
+tokenizers==0.20.3
+torch==2.5.1
+datasets==3.2.0
+scikit-learn==1.6.0
+accelerate==1.2.1
+
+# --- Ingestion / preprocessing ---
+pypdf==5.1.0
+spacy==3.8.3
+# after install run: python -m spacy download en_core_web_sm
+
+# --- Local LLM client (Ollama) ---
+ollama==0.4.4
+
+# --- Evaluation ---
+ragas==0.2.8
+pandas==2.2.3

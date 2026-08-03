@@ -1,0 +1,8 @@
+# Generated / large artifacts — do not commit
+data/chroma/
+data/processed/
+models/
+__pycache__/
+*.pyc
+.venv/
+venv/
