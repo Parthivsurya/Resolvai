@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import {
   Plus,
   Paperclip,
@@ -39,11 +40,19 @@ export default function App() {
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
 
-  // Expand the chat widget to fill the screen.
+  // Expand the chat widget to fill the screen, morphing smoothly via the
+  // View Transitions API where supported (falls back to an instant toggle).
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const applyFullscreen = (next) => {
+    if (document.startViewTransition) {
+      document.startViewTransition(() => flushSync(() => setIsFullscreen(next)));
+    } else {
+      setIsFullscreen(next);
+    }
+  };
   useEffect(() => {
     if (!isFullscreen) return;
-    const onKey = (e) => { if (e.key === 'Escape') setIsFullscreen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') applyFullscreen(false); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [isFullscreen]);
@@ -207,7 +216,7 @@ export default function App() {
                 <button
                   type="button"
                   className="chat-icon-btn fullscreen-toggle"
-                  onClick={() => setIsFullscreen((f) => !f)}
+                  onClick={() => applyFullscreen(!isFullscreen)}
                   title={isFullscreen ? 'Exit full screen (Esc)' : 'Full screen'}
                   aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}
                 >

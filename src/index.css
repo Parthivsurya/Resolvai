@@ -298,6 +298,30 @@ html, body {
   box-shadow: 0 16px 50px rgba(0, 0, 0, 0.7), 0 0 45px rgba(0, 210, 255, 0.35);
 }
 
+/* Smoothly morph the card between inline and full-screen states */
+.chat-preview-card {
+  view-transition-name: chat-card;
+}
+
+::view-transition-old(chat-card),
+::view-transition-new(chat-card) {
+  animation-duration: 0.4s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+::view-transition-group(chat-card) {
+  animation-duration: 0.4s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(chat-card),
+  ::view-transition-old(chat-card),
+  ::view-transition-new(chat-card) {
+    animation-duration: 0.01ms;
+  }
+}
+
 /* Full-screen chat mode */
 .chat-preview-card.fullscreen {
   position: fixed;
