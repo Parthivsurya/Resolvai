@@ -224,7 +224,7 @@ html, body {
 .chat-preview-card {
   width: 100%;
   max-width: 760px;
-  margin: 0 auto;
+  margin: auto;
   border-radius: 18px;
   background: linear-gradient(135deg, rgba(0, 195, 255, 0.5) 0%, rgba(0, 100, 220, 0.25) 50%, rgba(0, 195, 255, 0.4) 100%);
   padding: 1.5px;
@@ -281,12 +281,32 @@ html, body {
 
 .chat-body {
   padding: 24px 20px;
-  min-height: 200px;
-  max-height: 380px;
+  min-height: 240px;
+  max-height: min(52vh, 460px);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* Subtle scrollbar for the chat body */
+.chat-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chat-body::-webkit-scrollbar-thumb {
+  background: rgba(0, 210, 255, 0.25);
+  border-radius: 8px;
+}
+
+.chat-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 210, 255, 0.45);
+}
+
+.chat-body::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .chat-message-row {

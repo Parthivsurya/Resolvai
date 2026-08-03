@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Plus,
   Paperclip,
@@ -39,6 +39,13 @@ export default function App() {
 
   // Stable session id so the backend can rewrite multi-turn follow-ups.
   const [sessionId] = useState(() => 'web-' + Math.random().toString(36).slice(2));
+
+  // Auto-scroll the chat body to the most recent message.
+  const chatBodyRef = useRef(null);
+  useEffect(() => {
+    const el = chatBodyRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }, [messages, isTyping]);
 
   const handleSendMessage = async (e) => {
     e?.preventDefault();
@@ -172,7 +179,7 @@ export default function App() {
             </div>
 
             {/* Chat Body */}
-            <div className="chat-body">
+            <div className="chat-body" ref={chatBodyRef}>
               {messages.map((msg) => (
                 <div 
                   key={msg.id} 
@@ -278,9 +285,9 @@ export default function App() {
             
             <h2 className="modal-title">About ResolvAI</h2>
             <p className="modal-subtitle">
-              An intelligent, retrieval-augmented customer support chatbot for the e-commerce domain.
+              An intelligent, retrieval-augmented placement &amp; interview-prep assistant for students.
               <br />
-              <strong>Slogan:</strong> <em>"Support that knows, not guesses."</em>
+              <strong>Slogan:</strong> <em>"Answers that know, not guess."</em>
             </p>
 
             <div className="team-list">
@@ -306,8 +313,8 @@ export default function App() {
                 The "Open Book Examination" Analogy:
               </h4>
               <p>
-                Standard AI chatbots answer questions from memory like a closed-book exam—when they don't know the answer, they risk hallucinating. 
-                ResolvAI operates like an open-book exam: it opens the exact pages in your company's internal documentation, reads those pages, and responds with direct citations.
+                Standard AI chatbots answer questions from memory like a closed-book exam—when they don't know the answer, they risk hallucinating.
+                ResolvAI operates like an open-book exam: it opens the exact pages in the placement knowledge base and company PYQ archives, reads those pages, and responds with direct citations.
               </p>
             </div>
           </div>
@@ -324,7 +331,7 @@ export default function App() {
             
             <h2 className="modal-title">ResolvAI Key Innovations</h2>
             <p className="modal-subtitle">
-              Built on Retrieval-Augmented Generation (RAG) to eliminate hallucinations and lower support costs.
+              Built on Retrieval-Augmented Generation (RAG) to eliminate hallucinations and give students grounded, source-cited placement guidance.
             </p>
 
             <div className="features-grid">
@@ -364,7 +371,7 @@ export default function App() {
                   <span>Intent Routing</span>
                 </div>
                 <div className="feature-desc">
-                  Fine-tuned DistilBERT classifier routes queries into exact intent categories (order tracking, refund, etc.).
+                  Fine-tuned DistilBERT classifier routes queries into exact intent categories (PYQs, aptitude, coding round, HR, eligibility, etc.).
                 </div>
               </div>
 
@@ -402,7 +409,7 @@ export default function App() {
             
             <h2 className="modal-title">Contact ResolvAI Team</h2>
             <p className="modal-subtitle">
-              Have questions about integrating ResolvAI into your e-commerce platform? Reach out to us.
+              Have questions about ResolvAI or want to add your college's placement material? Reach out to us.
             </p>
 
             <form className="auth-form" onSubmit={(e) => { e.preventDefault(); alert('Thank you for contacting ResolvAI! We will get back to you shortly.'); setActiveModal(null); }}>
@@ -418,7 +425,7 @@ export default function App() {
 
               <div className="form-group">
                 <label className="form-label">Message</label>
-                <textarea className="form-input" rows="4" placeholder="Tell us about your support ticket volume and knowledge base..." required></textarea>
+                <textarea className="form-input" rows="4" placeholder="Tell us which companies or rounds you'd like covered..." required></textarea>
               </div>
 
               <button type="submit" className="btn-submit">
@@ -459,8 +466,8 @@ export default function App() {
                   <input type="text" className="form-input" placeholder="John Doe" required />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Work Email</label>
-                  <input type="email" className="form-input" placeholder="john@company.com" required />
+                  <label className="form-label">College Email</label>
+                  <input type="email" className="form-input" placeholder="name@college.edu" required />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Password</label>
@@ -473,8 +480,8 @@ export default function App() {
             ) : (
               <form className="auth-form" onSubmit={(e) => { e.preventDefault(); alert('Signed in successfully!'); setActiveModal(null); }}>
                 <div className="form-group">
-                  <label className="form-label">Work Email</label>
-                  <input type="email" className="form-input" placeholder="john@company.com" required />
+                  <label className="form-label">College Email</label>
+                  <input type="email" className="form-input" placeholder="name@college.edu" required />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Password</label>
