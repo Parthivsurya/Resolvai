@@ -10,7 +10,9 @@ import {
   Search,
   Zap,
   UserCheck,
-  FileText
+  FileText,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 
 // ResolvAI backend (FastAPI). Override at build time with VITE_API_URL if needed.
@@ -36,6 +38,15 @@ export default function App() {
   ]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+
+  // Expand the chat widget to fill the screen.
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKey = (e) => { if (e.key === 'Escape') setIsFullscreen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isFullscreen]);
 
   // Stable session id so the backend can rewrite multi-turn follow-ups.
   const [sessionId] = useState(() => 'web-' + Math.random().toString(36).slice(2));
@@ -183,7 +194,7 @@ export default function App() {
         </div>
 
         {/* Interactive Chatbot Box Widget */}
-        <section className="chat-preview-card">
+        <section className={`chat-preview-card ${isFullscreen ? 'fullscreen' : ''}`}>
           <div className="chat-inner-container">
             {/* Header inside chatbot box */}
             <div className="chat-header">
@@ -191,7 +202,18 @@ export default function App() {
                 <span className="status-dot"></span>
                 <span>ResolvAI · Placement Assistant</span>
               </div>
-              <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>RAG Engine v1.2</span>
+              <div className="chat-header-right">
+                <span className="chat-header-version">RAG Engine v1.2</span>
+                <button
+                  type="button"
+                  className="chat-icon-btn fullscreen-toggle"
+                  onClick={() => setIsFullscreen((f) => !f)}
+                  title={isFullscreen ? 'Exit full screen (Esc)' : 'Full screen'}
+                  aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}
+                >
+                  {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                </button>
+              </div>
             </div>
 
             {/* Chat Body */}

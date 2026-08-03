@@ -298,6 +298,29 @@ html, body {
   box-shadow: 0 16px 50px rgba(0, 0, 0, 0.7), 0 0 45px rgba(0, 210, 255, 0.35);
 }
 
+/* Full-screen chat mode */
+.chat-preview-card.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+}
+
+.chat-preview-card.fullscreen .chat-inner-container {
+  height: 100%;
+  border-radius: 0;
+}
+
+.chat-preview-card.fullscreen .chat-body {
+  flex: 1;
+  max-height: none;
+}
+
 .chat-inner-container {
   width: 100%;
   background: rgba(10, 15, 28, 0.96);
@@ -323,6 +346,26 @@ html, body {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.chat-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chat-header-version {
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.fullscreen-toggle {
+  color: #7dd3fc;
+}
+
+.fullscreen-toggle:hover {
+  color: #ffffff;
+  background: rgba(0, 210, 255, 0.15);
 }
 
 .status-dot {
