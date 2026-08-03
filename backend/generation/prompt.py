@@ -19,11 +19,14 @@ def build_context(hits: list[dict]) -> tuple[str, list[dict]]:
     """Render retrieved chunks into a numbered context block and a parallel citation list."""
     lines, citations = [], []
     for i, hit in enumerate(hits, start=1):
-        lines.append(f"[{i}] (source: {hit['source']}) {hit['text']}")
+        company = hit.get("company")
+        label = f"{company} · {hit['source']}" if company else hit["source"]
+        lines.append(f"[{i}] (source: {label}) {hit['text']}")
         citations.append(
             {
                 "n": i,
                 "source": hit["source"],
+                "company": company,
                 "doc_id": hit.get("doc_id"),
                 "category": hit.get("category"),
                 "score": round(float(hit.get("dense_score", 0.0)), 3),

@@ -52,6 +52,7 @@ def search(query: str, top_k: int | None = None, category: str | None = None) ->
                 "text": c["text"],
                 "source": c["source"],
                 "category": c["category"],
+                "company": c.get("company") or None,
                 "doc_id": c["doc_id"],
                 "score": (scores[i] - lo) / span,
             }

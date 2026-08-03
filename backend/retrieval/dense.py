@@ -42,6 +42,7 @@ def search(query: str, top_k: int | None = None, category: str | None = None) ->
                 "text": text,
                 "source": meta.get("source"),
                 "category": meta.get("category"),
+                "company": meta.get("company") or None,
                 "doc_id": meta.get("doc_id"),
                 "score": 1.0 - float(dist),  # cosine distance -> similarity
             }

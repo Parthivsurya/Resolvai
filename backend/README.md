@@ -111,4 +111,22 @@ Drop PDFs / CSVs / Markdown into `backend/data/raw/<category>/` and re-run
 `python3 -m backend.ingest.build_index` (or `POST /ingest`). CSV rows are treated as one
 document each (a `question`/`title` column is prepended to a `text`/`answer`/`content`
 column). To grow the intent classifier, add rows to `data/intents/intents.csv` and retrain.
+
+### Folder layout → metadata
+
+The path drives a document's metadata: `data/raw/<category>/<company?>/<...>/file`.
+
+- The **first** folder is the `category` (`pyq`, `hr`, `process`, …).
+- Any folder(s) **between** the category and the file become the `company` (kept in metadata
+  and shown in citations). This is the natural place for company-wise PYQs:
+
+  ```
+  data/raw/pyq/
+    ├── tcs/tcs_nqt.md        -> category=pyq, company=tcs
+    ├── amazon/amazon.md      -> category=pyq, company=amazon
+    └── google/google.md      -> category=pyq, company=google
+  ```
+
+  You can nest deeper too (`pyq/faang/google/2024.md` → company `faang/google`). Files placed
+  directly under `raw/` get category `misc` and no company.
 ```

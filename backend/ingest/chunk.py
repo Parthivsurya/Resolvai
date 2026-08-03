@@ -36,6 +36,7 @@ class Chunk:
     source: str
     category: str
     text: str
+    company: str | None = None
 
 
 def _split_sections(text: str) -> list[str]:
@@ -82,6 +83,7 @@ def chunk_document(doc: RawDoc) -> list[Chunk]:
                     source=doc.source,
                     category=doc.category,
                     text=text,
+                    company=doc.company,
                 )
             )
             idx += 1

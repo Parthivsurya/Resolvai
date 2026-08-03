@@ -73,6 +73,15 @@ def answer(query: str, history: list[dict] | None = None) -> ChatResult:
     hits = hybrid.search(standalone, category=intent.category)
     conf = confidence.score(hits)
 
+    # If category-routed retrieval is weak (wrong/empty category — common with the small
+    # intent model, e.g. a company-PYQ question mislabelled "coding_round"), retry across the
+    # whole knowledge base before giving up, and keep whichever is stronger.
+    if intent.category and confidence.should_abstain(conf):
+        alt_hits = hybrid.search(standalone, category=None)
+        alt_conf = confidence.score(alt_hits)
+        if alt_conf > conf:
+            hits, conf = alt_hits, alt_conf
+
     # 5. confidence-aware abstention / escalation
     if confidence.should_abstain(conf):
         return ChatResult(ABSTAIN_MSG, intent.intent, conf, True,

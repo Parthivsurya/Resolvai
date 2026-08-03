@@ -51,7 +51,13 @@ def _build_chroma(chunks: list[Chunk]) -> None:
     ids = [c.chunk_id for c in chunks]
     embeddings = embed.encode_documents([c.text for c in chunks])
     metadatas = [
-        {"doc_id": c.doc_id, "source": c.source, "category": c.category} for c in chunks
+        {
+            "doc_id": c.doc_id,
+            "source": c.source,
+            "category": c.category,
+            "company": c.company or "",  # Chroma metadata can't be None
+        }
+        for c in chunks
     ]
     documents = [c.text for c in chunks]
 
@@ -79,6 +85,7 @@ def _build_bm25(chunks: list[Chunk]) -> None:
                 "doc_id": c.doc_id,
                 "source": c.source,
                 "category": c.category,
+                "company": c.company or "",
                 "text": c.text,
             }
             for c in chunks
