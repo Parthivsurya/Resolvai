@@ -9,19 +9,18 @@ Run:  ``python3 -m backend.eval.intent_eval``
 from __future__ import annotations
 
 from sklearn.metrics import accuracy_score, classification_report, f1_score
-from sklearn.model_selection import train_test_split
 
 from .. import config
 from ..nlp import intent as intent_mod
 
 
 def main() -> None:
-    texts, labels = intent_mod._load_dataset()
     id2label = {i: name for i, name in enumerate(config.INTENTS)}
 
-    _, x_val, _, y_val = train_test_split(
-        texts, labels, test_size=0.3, random_state=42
-    )
+    # Use the same split the model was trained with. Re-splitting here with different
+    # parameters would overlap the "held-out" set with the training set and inflate every
+    # number below.
+    _, x_val, _, y_val = intent_mod.split_dataset()
 
     if intent_mod._pipeline() is None:
         print("No trained model found. Run: python3 -m backend.nlp.intent")

@@ -11,6 +11,7 @@ Train with:  ``python3 -m backend.nlp.intent``
 from __future__ import annotations
 
 import csv
+import re
 from dataclasses import dataclass
 from functools import lru_cache
 
@@ -45,12 +46,37 @@ def _load_dataset() -> tuple[list[str], list[int]]:
 # --------------------------------------------------------------------------------------
 # Training
 # --------------------------------------------------------------------------------------
-def train(epochs: int = 8, test_size: float = 0.2) -> dict:
+TEST_SIZE = 0.2      # held-out fraction, shared by training and evaluation
+SPLIT_SEED = 42
+
+
+def split_dataset(test_size: float = TEST_SIZE):
+    """Return the canonical (x_train, x_val, y_train, y_val) split.
+
+    Training and evaluation MUST use this same function. Splitting independently — with a
+    different ``test_size`` or without stratification — makes the two splits disagree, so
+    most of the "held-out" evaluation set has actually been seen during training and the
+    reported accuracy is inflated.
+
+    Stratified so every intent appears in the held-out split; an unstratified split over a
+    small corpus can leave classes unrepresented and make macro-F1 meaningless.
+    """
+    from sklearn.model_selection import train_test_split
+
+    texts, labels = _load_dataset()
+    try:
+        return train_test_split(
+            texts, labels, test_size=test_size, random_state=SPLIT_SEED, stratify=labels
+        )
+    except ValueError:  # a class too small to divide
+        return train_test_split(texts, labels, test_size=test_size, random_state=SPLIT_SEED)
+
+
+def train(epochs: int = 20, test_size: float = TEST_SIZE) -> dict:
     """Fine-tune DistilBERT and save it. Returns held-out metrics."""
     import numpy as np
     from datasets import Dataset
     from sklearn.metrics import accuracy_score, f1_score
-    from sklearn.model_selection import train_test_split
     from transformers import (
         AutoModelForSequenceClassification,
         AutoTokenizer,
@@ -58,13 +84,10 @@ def train(epochs: int = 8, test_size: float = 0.2) -> dict:
         TrainingArguments,
     )
 
-    texts, labels = _load_dataset()
     id2label = {i: name for i, name in enumerate(config.INTENTS)}
     label2id = {name: i for i, name in id2label.items()}
 
-    x_train, x_val, y_train, y_val = train_test_split(
-        texts, labels, test_size=test_size, random_state=42, stratify=None
-    )
+    x_train, x_val, y_train, y_val = split_dataset(test_size)
 
     tokenizer = AutoTokenizer.from_pretrained(config.INTENT_BASE_MODEL)
 
@@ -158,7 +181,10 @@ _FALLBACK_KEYWORDS = {
 def _fallback(query: str) -> IntentResult:
     q = query.lower()
     for intent, kws in _FALLBACK_KEYWORDS.items():
-        if any(kw in q for kw in kws):
+        # Match on word boundaries. A plain substring test makes short keywords fire inside
+        # unrelated words — "hi" hits "leadership", "experience" hits "experienced" — which
+        # silently mis-routes the query (e.g. to greeting, skipping retrieval entirely).
+        if any(re.search(rf"\b{re.escape(kw)}\b", q) for kw in kws):
             return _build(intent, 0.5)
     return _build("out_of_scope", 0.3)
 
