@@ -11,11 +11,15 @@ Reads raw files from ``data/raw`` and yields ``RawDoc`` records. Folder layout d
     company ``faang/google``). This lets you keep company-wise PYQs in their own folders.
   * files placed directly under ``raw/`` get category ``misc`` and no company.
 
-Supported formats: .md / .txt (plain text), .pdf (via pypdf), .csv (each row -> one doc).
+Supported formats: .md / .txt (plain text), .pdf (via pypdf), .docx (Word, converted to
+Markdown), .csv (each row -> one doc).
 """
 from __future__ import annotations
 
 import csv
+import re
+import xml.etree.ElementTree as ET
+import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator
@@ -57,6 +61,84 @@ def _load_pdf(path: Path) -> str:
     return "\n\n".join(pages)
 
 
+# Word XML namespace. A .docx is a zip whose word/document.xml holds the body, so we read it
+# with the standard library instead of adding a dependency.
+_W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+_HEADING_STYLE_RE = re.compile(r"Heading(\d)")
+
+
+def _docx_paragraph(para: ET.Element) -> tuple[str, list[tuple[bool, str]]]:
+    """Return a paragraph's style name and its runs as ``(is_bold, text)`` pairs."""
+    style_el = para.find(f"{_W}pPr/{_W}pStyle")
+    style = style_el.get(f"{_W}val") if style_el is not None else ""
+    runs = [
+        (
+            run.find(f"{_W}rPr/{_W}b") is not None,
+            "".join(t.text or "" for t in run.iter(f"{_W}t")),
+        )
+        for run in para.iter(f"{_W}r")
+    ]
+    return style or "", [(bold, text) for bold, text in runs if text.strip()]
+
+
+def _load_docx(path: Path) -> str:
+    """Extract a Word document as Markdown.
+
+    Word's own structure is translated into Markdown headings so that the structure-aware
+    chunker (:mod:`.chunk`) can still split on logical sections rather than treating the
+    document as one flat blob:
+
+      * ``Heading<N>`` style        -> ``#`` * (N+1), leaving ``#`` for the document title
+      * a fully bold paragraph     -> ``###`` (this is how question/topic entries are marked)
+      * ``List*`` styles           -> ``-`` bullets
+      * a bold lead-in + body text -> ``**Label:** body`` when the lead-in ends with a colon,
+                                      otherwise the lead-in becomes a ``###`` heading
+    """
+    with zipfile.ZipFile(path) as archive:
+        root = ET.fromstring(archive.read("word/document.xml"))
+    body = root.find(f"{_W}body")
+    if body is None:
+        return ""
+
+    blocks: list[str] = []
+    seen_title = False
+    for para in body.iter(f"{_W}p"):
+        style, runs = _docx_paragraph(para)
+        if not runs:
+            continue
+        full = "".join(text for _, text in runs).strip()
+
+        heading = _HEADING_STYLE_RE.fullmatch(style)
+        if heading:
+            blocks.append("#" * min(int(heading.group(1)) + 1, 6) + f" {full}")
+            continue
+        if style.startswith("List"):
+            blocks.append(f"- {full}")
+            continue
+
+        # split the leading run of bold text (a label or an entry title) from the body
+        lead = 0
+        while lead < len(runs) and runs[lead][0]:
+            lead += 1
+        prefix = "".join(text for _, text in runs[:lead]).strip()
+        rest = "".join(text for _, text in runs[lead:]).strip()
+
+        if prefix and not rest:
+            # the first all-bold paragraph is the document title; later ones are entries
+            if seen_title:
+                blocks.append(f"### {prefix}")
+            else:
+                blocks.append(f"# {prefix}")
+                seen_title = True
+        elif prefix.endswith(":"):
+            blocks.append(f"**{prefix}** {rest}")
+        elif prefix:
+            blocks.extend([f"### {prefix}", rest])
+        else:
+            blocks.append(full)
+    return "\n\n".join(blocks)
+
+
 def _load_csv(path: Path) -> Iterator[RawDoc]:
     """Each CSV row becomes a document. A 'text'/'answer'/'content' column is used as the
     body; a 'question'/'title' column (if present) is prepended for context."""
@@ -86,7 +168,8 @@ def _load_csv(path: Path) -> Iterator[RawDoc]:
 def load_raw_docs() -> Iterator[RawDoc]:
     """Yield every document found under ``data/raw`` (recursively)."""
     for path in sorted(config.RAW_DIR.rglob("*")):
-        if not path.is_file() or path.name.startswith("."):
+        # skip dotfiles and Word's "~$name.docx" lock files left behind by an open document
+        if not path.is_file() or path.name.startswith((".", "~$")):
             continue
         rel = str(path.relative_to(config.RAW_DIR))
         category, company, source_label = _rel_info(path)
@@ -95,6 +178,8 @@ def load_raw_docs() -> Iterator[RawDoc]:
             yield RawDoc(rel, source_label, category, path.read_text(encoding="utf-8"), company)
         elif suffix == ".pdf":
             yield RawDoc(rel, source_label, category, _load_pdf(path), company)
+        elif suffix == ".docx":
+            yield RawDoc(rel, source_label, category, _load_docx(path), company)
         elif suffix == ".csv":
             yield from _load_csv(path)
         # silently skip unsupported extensions
