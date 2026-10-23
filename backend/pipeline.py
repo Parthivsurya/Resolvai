@@ -55,16 +55,30 @@ def answer(query: str, history: list[dict] | None = None) -> ChatResult:
     # 1. preprocess + mask PII (never index/log raw student PII)
     clean = mask_pii(normalize_query(query), mask_names=config.MASK_NAMES)
 
-    # 2. conversational query rewriting
-    standalone = rewrite_mod.rewrite(clean, history)
+    # 2. A request to reach a human is always self-contained, so classify the *original*
+    # message first and escalate on it directly. Rewriting runs next and folds conversation
+    # history into the query — which on a sensitive message destroys it ("I want to talk to
+    # a placement officer" became "campus placement requirements cgpa minimum" mid-chat),
+    # silently denying the handoff. Safety must not depend on the rewriter.
+    direct = intent_mod.predict(clean)
+    if direct.escalate:
+        return ChatResult(ESCALATION_MSG, direct.intent, direct.confidence, True,
+                          rewritten_query=clean)
 
-    # 3. intent classification + routing
+    # 3. conversational query rewriting, then intent classification + routing
+    standalone = rewrite_mod.rewrite(clean, history)
     intent = intent_mod.predict(standalone)
 
     if intent.escalate:
         return ChatResult(ESCALATION_MSG, intent.intent, intent.confidence, True,
                           rewritten_query=standalone)
-    if intent.smalltalk:
+    # A greeting always short-circuits. An out-of-scope verdict only does so when the
+    # classifier is confident — otherwise fall through to retrieval, because the knowledge
+    # base is the better judge of whether a question is covered than a 19-class model
+    # trained on a few hundred utterances.
+    if intent.smalltalk and (
+        intent.intent != "out_of_scope" or intent.confidence >= config.OUT_OF_SCOPE_MIN_CONF
+    ):
         msg = GREETING_MSG if intent.intent == "greeting" else OUT_OF_SCOPE_MSG
         return ChatResult(msg, intent.intent, intent.confidence, False,
                           rewritten_query=standalone)
@@ -73,10 +87,13 @@ def answer(query: str, history: list[dict] | None = None) -> ChatResult:
     hits = hybrid.search(standalone, category=intent.category)
     conf = confidence.score(hits)
 
-    # If category-routed retrieval is weak (wrong/empty category — common with the small
-    # intent model, e.g. a company-PYQ question mislabelled "coding_round"), retry across the
-    # whole knowledge base before giving up, and keep whichever is stronger.
-    if intent.category and confidence.should_abstain(conf):
+    # Treat the predicted category as a *preference*, not a hard constraint. The intent
+    # corpus is small, so routing is unreliable: a mis-routed query gets filtered into the
+    # wrong category, and if that category happens to return a weak-but-above-threshold
+    # chunk the system would answer "I don't have that" from it while the real answer sits
+    # unsearched in another category. Comparing against unfiltered retrieval and keeping
+    # the stronger result makes a routing mistake cost precision, not the answer.
+    if intent.category:
         alt_hits = hybrid.search(standalone, category=None)
         alt_conf = confidence.score(alt_hits)
         if alt_conf > conf:

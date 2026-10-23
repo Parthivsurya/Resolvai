@@ -30,8 +30,9 @@ for _d in (RAW_DIR, PROCESSED_DIR, CHROMA_DIR, INTENTS_DIR, MODELS_DIR):
 EMBED_MODEL = os.getenv("RESOLVAI_EMBED_MODEL", "BAAI/bge-small-en-v1.5")
 
 # Local LLM served by Ollama (generation + conversational query rewriting).
-# Defaults to llama3 (already pulled locally). deepseek-r1 also works but emits <think>
-# reasoning traces; llama3 gives cleaner grounded answers.
+# Defaults to llama3 (8B). The 3B llama3.2 is faster but hedges — it contradicts itself and
+# over-triggers the "not in my knowledge base" refusal even when the context holds the
+# answer. deepseek-r1 also works but emits <think> reasoning traces.
 OLLAMA_MODEL = os.getenv("RESOLVAI_OLLAMA_MODEL", "llama3:latest")
 OLLAMA_HOST = os.getenv("RESOLVAI_OLLAMA_HOST", "http://localhost:11434")
 
@@ -135,6 +136,12 @@ SENSITIVE_INTENTS = {"talk_to_placement_officer"}
 
 # Intents handled conversationally without retrieval.
 SMALLTALK_INTENTS = {"greeting"}
+
+# Refusing a query outright as out-of-scope skips retrieval entirely, so a classifier slip
+# silently denies a real question ("give me some pyq of amazon" was refused at 0.82). Only
+# short-circuit when the classifier is *confident*; below this, fall through to retrieval and
+# let the confidence gate decide, since the knowledge base is the better judge of coverage.
+OUT_OF_SCOPE_MIN_CONF = float(os.getenv("RESOLVAI_OOS_MIN_CONF", "0.9"))
 
 # All document categories used across the knowledge base.
 DOC_CATEGORIES = ["pyq", "aptitude", "coding", "hr", "process", "company_profile", "experience"]
