@@ -107,10 +107,13 @@ names, chunk size/overlap (`RQ4`), retrieval `top_k`, RRF constant, and the
 
 ## Adding your own data
 
-Drop PDFs / CSVs / Markdown into `backend/data/raw/<category>/` and re-run
+Drop PDFs / Word `.docx` / CSVs / Markdown into `backend/data/raw/<category>/` and re-run
 `python3 -m backend.ingest.build_index` (or `POST /ingest`). CSV rows are treated as one
 document each (a `question`/`title` column is prepended to a `text`/`answer`/`content`
-column). To grow the intent classifier, add rows to `data/intents/intents.csv` and retrain.
+column). Word documents are converted to Markdown on load — heading styles, all-bold entry
+titles and bold `Label:` lead-ins all become Markdown headings — so the structure-aware
+chunker still splits them on logical sections instead of treating them as one flat blob.
+To grow the intent classifier, add rows to `data/intents/intents.csv` and retrain.
 
 ### Folder layout → metadata
 
